@@ -17,7 +17,6 @@ bin/charm_helpers_sync.py:
 
 sync: bin/charm_helpers_sync.py
 	@$(PYTHON) bin/charm_helpers_sync.py -c charm-helpers-sync.yaml
-	patch -p0 < ~/profsvcs/canonical/charms/charmhelpers.patch
 
 publish: lint unit_test
 	bzr push lp:charms/plumgrid-gateway
