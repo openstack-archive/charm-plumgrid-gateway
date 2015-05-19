@@ -1,0 +1,24 @@
+name: plumgrid-gateway
+subordinate: false
+maintainer: Bilal Baqar <bbaqar@plumgrid.com>
+summary: "OpenStack Neutron OpenvSwitch Agent"
+description: |
+  Neutron is a virtual network service for Openstack, and a part of
+  Netstack. Just like OpenStack Nova provides an API to dynamically
+  request and configure virtual servers, Neutron provides an API to
+  dynamically request and configure virtual networks. These networks
+  connect "interfaces" from other OpenStack services (e.g., virtual NICs
+  from Nova VMs). The Neutron API supports extensions to provide
+  advanced network capabilities (e.g., QoS, ACLs, network monitoring,
+  etc.)
+  .
+  This charm provides the Plumgrid Gateway
+tags:
+  - openstack
+requires:
+  plumgrid-plugin:
+    interface: plumgrid-plugin
+  plumgrid:
+    interface: plumgrid
+  neutron-plugin-api:
+    interface: neutron-plugin-api

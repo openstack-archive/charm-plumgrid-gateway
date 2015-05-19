@@ -1,0 +1,98 @@
+test:
+  series: 'trusty'
+  relations:
+  - - neutron-api
+    - neutron-iovisor
+  - - neutron-iovisor
+    - plumgrid-gateway
+  - - nova-cloud-controller
+    - nova-compute
+  - - glance
+    - nova-compute
+  - - nova-compute
+    - rabbitmq-server
+  - - mysql
+    - nova-compute
+  - - cinder
+    - nova-cloud-controller
+  - - nova-cloud-controller
+    - rabbitmq-server
+  - - glance
+    - nova-cloud-controller
+  - - keystone
+    - nova-cloud-controller
+  - - mysql
+    - nova-cloud-controller
+  - - neutron-api
+    - nova-cloud-controller
+  services:
+    cinder:
+      charm: cs:trusty/cinder
+      num_units: 1
+      options:
+        openstack-origin: cloud:trusty-juno
+      to: 'lxc:0'
+    glance:
+      charm: cs:trusty/glance
+      num_units: 1
+      options:
+        openstack-origin: cloud:trusty-juno
+      to: 'lxc:0'
+    keystone:
+      charm: cs:trusty/keystone
+      num_units: 1
+      options:
+        admin-password: plumgrid
+        openstack-origin: cloud:trusty-juno
+      to: 'lxc:0'
+    mysql:
+      charm: cs:trusty/mysql
+      num_units: 1
+      to: 'lxc:0'
+    neutron-api:
+      charm: cs:~juliann/trusty/neutron-api
+      num_units: 1
+      options:
+        install_keys: 'null'
+        install_sources: "deb http://10.22.24.200/debs ./"
+        neutron-plugin: "plumgrid"
+        neutron-security-groups: "true"
+        openstack-origin: "cloud:trusty-juno"
+        plumgrid-password: "plumgrid"
+        plumgrid-username: "plumgrid"
+        plumgrid-virtual-ip: "192.168.100.250"
+      to: 'lxc:0'
+    neutron-iovisor:
+      charm: cs:~juliann/trusty/neutron-iovisor
+      num_units: 1
+      options:
+        install_keys: 'null'
+        install_sources: "deb http://10.22.24.200/debs ./"
+      to: 'nova-compute'
+    plumgrid-gateway:
+      charm: cs:~juliann/trusty/plumgrid-gateway
+      num_units: 1
+      options:
+        external-interface: 'eth1'
+      to: 'nova-compute'
+    nova-cloud-controller:
+      charm: cs:trusty/nova-cloud-controller
+      num_units: 1
+      options:
+        console-access-protocol: novnc
+        network-manager: Neutron
+        openstack-origin: cloud:trusty-juno
+        quantum-security-groups: 'yes'
+      to: 'lxc:0'
+    nova-compute:
+      charm: cs:~juliann/trusty/nova-compute
+      num_units: 1
+      options:
+        enable-live-migration: true
+        enable-resize: true
+        migration-auth-type: ssh
+        openstack-origin: cloud:trusty-juno
+    rabbitmq-server:
+      charm: cs:trusty/rabbitmq-server
+      num_units: 1
+      to: 'lxc:0'
