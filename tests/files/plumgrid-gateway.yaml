@@ -1,10 +1,14 @@
 test:
   series: 'trusty'
   relations:
-  - - neutron-api
-    - neutron-iovisor
   - - neutron-iovisor
     - plumgrid-gateway
+  - - neutron-iovisor
+    - neutron-plumgrid-plugin
+  - - keystone
+    - neutron-plumgrid-plugin
+  - - neutron-api
+    - neutron-plumgrid-plugin
   - - nova-cloud-controller
     - nova-compute
   - - glance
@@ -26,6 +30,12 @@ test:
   - - neutron-api
     - nova-cloud-controller
   services:
+    plumgrid-gateway:
+      charm: cs:~plumgrid-team/trusty/plumgrid-gateway
+      num_units: 1
+      options:
+        external-interface: 'eth1'
+      to: 'nova-compute'
     cinder:
       charm: cs:trusty/cinder
       num_units: 1
@@ -50,30 +60,27 @@ test:
       num_units: 1
       to: 'lxc:0'
     neutron-api:
-      charm: cs:~juliann/trusty/neutron-api
+      charm: cs:~plumgrid-team/trusty/neutron-api
       num_units: 1
       options:
-        install_keys: 'null'
-        install_sources: "deb http://10.22.24.200/debs ./"
         neutron-plugin: "plumgrid"
-        neutron-security-groups: "true"
+        neutron-security-groups: "false"
         openstack-origin: "cloud:trusty-juno"
         plumgrid-password: "plumgrid"
         plumgrid-username: "plumgrid"
         plumgrid-virtual-ip: "192.168.100.250"
       to: 'lxc:0'
+    neutron-plumgrid-plugin:
+      charm: cs:~plumgrid-team/trusty/neutron-plumgrid-plugin
+      options:
+        install_keys: 'null'
+        install_sources: "deb http://54.193.161.94/debs/plumgrid/ ./"
     neutron-iovisor:
-      charm: cs:~juliann/trusty/neutron-iovisor
+      charm: cs:~plumgrid-team/trusty/neutron-iovisor
       num_units: 1
       options:
         install_keys: 'null'
-        install_sources: "deb http://10.22.24.200/debs ./"
-      to: 'nova-compute'
-    plumgrid-gateway:
-      charm: cs:~juliann/trusty/plumgrid-gateway
-      num_units: 1
-      options:
-        external-interface: 'eth1'
+        install_sources: "deb http://54.193.161.94/debs/plumgrid/ ./"
       to: 'nova-compute'
     nova-cloud-controller:
       charm: cs:trusty/nova-cloud-controller
@@ -85,7 +92,7 @@ test:
         quantum-security-groups: 'yes'
       to: 'lxc:0'
     nova-compute:
-      charm: cs:~juliann/trusty/nova-compute
+      charm: cs:~plumgrid-team/trusty/nova-compute
       num_units: 1
       options:
         enable-live-migration: true

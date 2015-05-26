@@ -1,39 +1,55 @@
 #!/usr/bin/env python3
 
 import amulet
-import requests
 import unittest
+
 
 class TestDeployment(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.deployment = amulet.Deployment(series='trusty')
-        cls.deployment.load_bundle_file(bundle_file='files/plumgrid-gateway.yaml', deployment_name='test')
+        cls.deployment.load_bundle_file(
+            bundle_file='files/plumgrid-gateway.yaml',
+            deployment_name='test')
         try:
             cls.deployment.setup(timeout=2000)
             cls.deployment.sentry.wait()
         except amulet.helpers.TimeoutError:
-            amulet.raise_status(amulet.SKIP, msg="Environment wasn't stood up in time")
+            amulet.raise_status(
+                amulet.SKIP,
+                msg="Environment wasn't stood up in time")
         except:
             raise
-    
+
     def test_plumgrid_gateway_external_interface(self):
-        external_interface = self.deployment.services['plumgrid-gateway']['options']['external-interface']
+        pg_sentry = self.deployment.sentry['plumgrid-gateway/0']
+        pg_options = self.deployment.services['plumgrid-gateway']['options']
+        external_interface = pg_options['external-interface']
         if not external_interface:
-            amulet.raise_status(amulet.FAIL, msg='plumgrid external-interface parameter was not found.')
-        output, code = self.deployment.sentry['plumgrid-gateway/0'].run("ethtool {}".format(external_interface))
+            amulet.raise_status(
+                amulet.FAIL,
+                msg='plumgrid external-interface parameter was not found.')
+        output, code = pg_sentry.run("ethtool {}".format(external_interface))
         if code != 0:
-            amulet.raise_status(amulet.FAIL, msg='external interface not found on the host')
+            amulet.raise_status(
+                amulet.FAIL,
+                msg='external interface not found on the host')
 
     def test_plumgrid_gateway_started(self):
-        agent_state = self.deployment.sentry['plumgrid-gateway/0'].info['agent-state']
+        pg_sentry = self.deployment.sentry['plumgrid-gateway/0']
+        agent_state = pg_sentry.info['agent-state']
         if agent_state != 'started':
-            amulet.raise_status(amulet.FAIL, msg='plumgrid gateway is not in a started state')
+            amulet.raise_status(
+                amulet.FAIL,
+                msg='plumgrid gateway is not in a started state')
 
     def test_plumgrid_gateway_relation(self):
-        relation = self.deployment.sentry['plumgrid-gateway/0'].relation('plumgrid-plugin', 'neutron-iovisor:plumgrid-plugin')
+        pg_sentry = self.deployment.sentry['plumgrid-gateway/0']
+        relation = pg_sentry.relation(
+            'plumgrid-plugin', 'neutron-iovisor:plumgrid-plugin')
         if not relation['private-address']:
-            amulet.raise_status(amulet.FAIL, msg='private address was not set in the plumgrid gateway relation')
+            amulet.raise_status(
+                amulet.FAIL, msg='Relation not found.')
 
 if __name__ == '__main__':
     unittest.main()
