@@ -74,13 +74,13 @@ test:
       charm: cs:~plumgrid-team/trusty/neutron-plumgrid-plugin
       options:
         install_keys: 'null'
-        install_sources: "deb http://54.193.161.94/debs/plumgrid/ ./"
+        install_sources: "ppa:plumgrid-team/test"
     neutron-iovisor:
       charm: cs:~plumgrid-team/trusty/neutron-iovisor
       num_units: 1
       options:
         install_keys: 'null'
-        install_sources: "deb http://54.193.161.94/debs/plumgrid/ ./"
+        install_sources: "ppa:plumgrid-team/test"
       to: 'nova-compute'
     nova-cloud-controller:
       charm: cs:trusty/nova-cloud-controller
