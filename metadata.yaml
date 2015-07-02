@@ -1,18 +1,12 @@
 name: plumgrid-gateway
 subordinate: false
 maintainer: Bilal Baqar <bbaqar@plumgrid.com>
-summary: "OpenStack Neutron OpenvSwitch Agent"
+summary: "PLUMgrid IO Visor Gateway"
 description: |
-  Neutron is a virtual network service for Openstack, and a part of
-  Netstack. Just like OpenStack Nova provides an API to dynamically
-  request and configure virtual servers, Neutron provides an API to
-  dynamically request and configure virtual networks. These networks
-  connect "interfaces" from other OpenStack services (e.g., virtual NICs
-  from Nova VMs). The Neutron API supports extensions to provide
-  advanced network capabilities (e.g., QoS, ACLs, network monitoring,
-  etc.)
-  .
-  This charm provides the Plumgrid Gateway
+  A PLUMgrid Gateway provides connectivity from the VXLAN based virtual
+  fabric to external IP networks (such as for internet access). The PLUMgrid
+  Gateway can be deployed as a pair in Active/ Active mode for load balancing
+  of traffic and high availability of external connectivity.
 tags:
   - openstack
 requires:
