@@ -3,3 +3,19 @@ options:
     default: eth1
     type: string
     description: The interface that will provide external connectivity
+  lcm-ssh-key:
+    default: 'null'
+    type: string
+    description: Public SSH key of PLUMgrid LCM which is running PG-Tools
+  network-device-mtu:
+    type: string
+    default: '1580'
+    description: The MTU size for interfaces managed by director.
+  install_sources:
+    default: 'ppa:plumgrid-team/stable'
+    type: string
+    description: Provide the install source from where to install the PLUMgrid debs
+  install_keys:
+    default: null
+    type: string
+    description: Provide the respective keys of the install sources

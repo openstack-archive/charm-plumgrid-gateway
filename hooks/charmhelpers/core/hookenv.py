@@ -21,7 +21,10 @@
 #  Charm Helpers Developers <juju@lists.ubuntu.com>
 
 from __future__ import print_function
+import copy
+from distutils.version import LooseVersion
 from functools import wraps
+import glob
 import os
 import json
 import yaml
@@ -242,29 +245,7 @@ class Config(dict):
         self.path = os.path.join(charm_dir(), Config.CONFIG_FILE_NAME)
         if os.path.exists(self.path):
             self.load_previous()
-
-    def __getitem__(self, key):
-        """For regular dict lookups, check the current juju config first,
-        then the previous (saved) copy. This ensures that user-saved values
-        will be returned by a dict lookup.
-
-        """
-        try:
-            return dict.__getitem__(self, key)
-        except KeyError:
-            return (self._prev_dict or {})[key]
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def keys(self):
-        prev_keys = []
-        if self._prev_dict is not None:
-            prev_keys = self._prev_dict.keys()
-        return list(set(prev_keys + list(dict.keys(self))))
+        atexit(self._implicit_save)
 
     def load_previous(self, path=None):
         """Load previous copy of config from disk.
@@ -283,6 +264,9 @@ class Config(dict):
         self.path = path or self.path
         with open(self.path) as f:
             self._prev_dict = json.load(f)
+        for k, v in copy.deepcopy(self._prev_dict).items():
+            if k not in self:
+                self[k] = v
 
     def changed(self, key):
         """Return True if the current value for this key is different from
@@ -314,12 +298,12 @@ class Config(dict):
         instance.
 
         """
-        if self._prev_dict:
-            for k, v in six.iteritems(self._prev_dict):
-                if k not in self:
-                    self[k] = v
         with open(self.path, 'w') as f:
             json.dump(self, f)
+
+    def _implicit_save(self):
+        if self.implicit_save:
+            self.save()
 
 
 @cached
@@ -364,11 +348,16 @@ def relation_set(relation_id=None, relation_settings=None, **kwargs):
     relation_settings = relation_settings if relation_settings else {}
     relation_cmd_line = ['relation-set']
     accepts_file = "--file" in subprocess.check_output(
-        relation_cmd_line + ["--help"])
+        relation_cmd_line + ["--help"], universal_newlines=True)
     if relation_id is not None:
         relation_cmd_line.extend(('-r', relation_id))
     settings = relation_settings.copy()
     settings.update(kwargs)
+    for key, value in settings.items():
+        # Force value to be a string: it always should, but some call
+        # sites pass in things like dicts or numbers.
+        if value is not None:
+            settings[key] = "{}".format(value)
     if accepts_file:
         # --file was introduced in Juju 1.23.2. Use it by default if
         # available, since otherwise we'll break if the relation data is
@@ -388,6 +377,17 @@ def relation_set(relation_id=None, relation_settings=None, **kwargs):
         subprocess.check_call(relation_cmd_line)
     # Flush cache of any relation-gets for local unit
     flush(local_unit())
+
+
+def relation_clear(r_id=None):
+    ''' Clears any relation data already set on relation r_id '''
+    settings = relation_get(rid=r_id,
+                            unit=local_unit())
+    for setting in settings:
+        if setting not in ['public-address', 'private-address']:
+            settings[setting] = None
+    relation_set(relation_id=r_id,
+                 **settings)
 
 
 @cached
@@ -571,10 +571,14 @@ class Hooks(object):
             hooks.execute(sys.argv)
     """
 
-    def __init__(self, config_save=True):
+    def __init__(self, config_save=None):
         super(Hooks, self).__init__()
         self._hooks = {}
-        self._config_save = config_save
+
+        # For unknown reasons, we allow the Hooks constructor to override
+        # config().implicit_save.
+        if config_save is not None:
+            config().implicit_save = config_save
 
     def register(self, name, function):
         """Register a hook"""
@@ -582,13 +586,16 @@ class Hooks(object):
 
     def execute(self, args):
         """Execute a registered hook based on args[0]"""
+        _run_atstart()
         hook_name = os.path.basename(args[0])
         if hook_name in self._hooks:
-            self._hooks[hook_name]()
-            if self._config_save:
-                cfg = config()
-                if cfg.implicit_save:
-                    cfg.save()
+            try:
+                self._hooks[hook_name]()
+            except SystemExit as x:
+                if x.code is None or x.code == 0:
+                    _run_atexit()
+                raise
+            _run_atexit()
         else:
             raise UnregisteredHookError(hook_name)
 
@@ -681,3 +688,115 @@ def status_get():
             return 'unknown'
         else:
             raise
+
+
+def translate_exc(from_exc, to_exc):
+    def inner_translate_exc1(f):
+        def inner_translate_exc2(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except from_exc:
+                raise to_exc
+
+        return inner_translate_exc2
+
+    return inner_translate_exc1
+
+
+@translate_exc(from_exc=OSError, to_exc=NotImplementedError)
+def is_leader():
+    """Does the current unit hold the juju leadership
+
+    Uses juju to determine whether the current unit is the leader of its peers
+    """
+    cmd = ['is-leader', '--format=json']
+    return json.loads(subprocess.check_output(cmd).decode('UTF-8'))
+
+
+@translate_exc(from_exc=OSError, to_exc=NotImplementedError)
+def leader_get(attribute=None):
+    """Juju leader get value(s)"""
+    cmd = ['leader-get', '--format=json'] + [attribute or '-']
+    return json.loads(subprocess.check_output(cmd).decode('UTF-8'))
+
+
+@translate_exc(from_exc=OSError, to_exc=NotImplementedError)
+def leader_set(settings=None, **kwargs):
+    """Juju leader set value(s)"""
+    # Don't log secrets.
+    # log("Juju leader-set '%s'" % (settings), level=DEBUG)
+    cmd = ['leader-set']
+    settings = settings or {}
+    settings.update(kwargs)
+    for k, v in settings.items():
+        if v is None:
+            cmd.append('{}='.format(k))
+        else:
+            cmd.append('{}={}'.format(k, v))
+    subprocess.check_call(cmd)
+
+
+@cached
+def juju_version():
+    """Full version string (eg. '1.23.3.1-trusty-amd64')"""
+    # Per https://bugs.launchpad.net/juju-core/+bug/1455368/comments/1
+    jujud = glob.glob('/var/lib/juju/tools/machine-*/jujud')[0]
+    return subprocess.check_output([jujud, 'version'],
+                                   universal_newlines=True).strip()
+
+
+@cached
+def has_juju_version(minimum_version):
+    """Return True if the Juju version is at least the provided version"""
+    return LooseVersion(juju_version()) >= LooseVersion(minimum_version)
+
+
+_atexit = []
+_atstart = []
+
+
+def atstart(callback, *args, **kwargs):
+    '''Schedule a callback to run before the main hook.
+
+    Callbacks are run in the order they were added.
+
+    This is useful for modules and classes to perform initialization
+    and inject behavior. In particular:
+
+        - Run common code before all of your hooks, such as logging
+          the hook name or interesting relation data.
+        - Defer object or module initialization that requires a hook
+          context until we know there actually is a hook context,
+          making testing easier.
+        - Rather than requiring charm authors to include boilerplate to
+          invoke your helper's behavior, have it run automatically if
+          your object is instantiated or module imported.
+
+    This is not at all useful after your hook framework as been launched.
+    '''
+    global _atstart
+    _atstart.append((callback, args, kwargs))
+
+
+def atexit(callback, *args, **kwargs):
+    '''Schedule a callback to run on successful hook completion.
+
+    Callbacks are run in the reverse order that they were added.'''
+    _atexit.append((callback, args, kwargs))
+
+
+def _run_atstart():
+    '''Hook frameworks must invoke this before running the main hook body.'''
+    global _atstart
+    for callback, args, kwargs in _atstart:
+        callback(*args, **kwargs)
+    del _atstart[:]
+
+
+def _run_atexit():
+    '''Hook frameworks must invoke this after the main hook body has
+    successfully completed. Do not invoke it if the hook fails.'''
+    global _atexit
+    for callback, args, kwargs in reversed(_atexit):
+        callback(*args, **kwargs)
+    del _atexit[:]

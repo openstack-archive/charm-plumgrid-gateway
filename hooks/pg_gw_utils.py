@@ -1,9 +1,20 @@
+# Copyright (c) 2015, PLUMgrid Inc, http://plumgrid.com
+
+# This file contains functions used by the hooks to deploy PLUMgrid Gateway.
+
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
-from charmhelpers.core.hookenv import log
+from charmhelpers.core.hookenv import (
+    log,
+    config,
+)
 from charmhelpers.core.host import (
     write_file,
+    service_start,
+    service_stop,
 )
+from charmhelpers.contrib.storage.linux.ceph import modprobe
+from charmhelpers.core.host import set_nic_mtu
 from charmhelpers.contrib.openstack import templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
@@ -12,65 +23,54 @@ from charmhelpers.contrib.openstack.utils import (
 import pg_gw_context
 import subprocess
 import time
+import os
 
-#Dont need these right now
-NOVA_CONF_DIR = "/etc/nova"
-NEUTRON_CONF_DIR = "/etc/neutron"
-NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
-NEUTRON_DEFAULT = '/etc/default/neutron-server'
+LXC_CONF = "/etc/libvirt/lxc.conf"
+TEMPLATES = 'templates/'
+PG_LXC_DATA_PATH = '/var/lib/libvirt/filesystems/plumgrid-data'
 
-#Puppet Files
-P_PGKA_CONF = '/opt/pg/etc/puppet/modules/sal/templates/keepalived.conf.erb'
-P_PG_CONF = '/opt/pg/etc/puppet/modules/plumgrid/templates/plumgrid.conf.erb'
-P_PGDEF_CONF = '/opt/pg/etc/puppet/modules/sal/templates/default.conf.erb'
+PG_CONF = '%s/conf/pg/plumgrid.conf' % PG_LXC_DATA_PATH
+PG_HN_CONF = '%s/conf/etc/hostname' % PG_LXC_DATA_PATH
+PG_HS_CONF = '%s/conf/etc/hosts' % PG_LXC_DATA_PATH
+PG_IFCS_CONF = '%s/conf/pg/ifcs.conf' % PG_LXC_DATA_PATH
+AUTH_KEY_PATH = '%s/root/.ssh/authorized_keys' % PG_LXC_DATA_PATH
 
-#Plumgrid Files
-PGKA_CONF = '/var/lib/libvirt/filesystems/plumgrid/etc/keepalived/keepalived.conf'
-PG_CONF = '/var/lib/libvirt/filesystems/plumgrid/opt/pg/etc/plumgrid.conf'
-PGDEF_CONF = '/var/lib/libvirt/filesystems/plumgrid/opt/pg/sal/nginx/conf.d/default.conf'
-PGHN_CONF = '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hostname'
-PGHS_CONF = '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hosts'
-PGIFCS_CONF = '/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/ifcs.conf'
-IFCTL_CONF = '/var/run/plumgrid/lxc/ifc_list_gateway'
-IFCTL_P_CONF = '/var/lib/libvirt/filesystems/plumgrid/var/run/plumgrid/lxc/ifc_list_gateway'
-
-#EDGE SPECIFIC
 SUDOERS_CONF = '/etc/sudoers.d/ifc_ctl_sudoers'
-FILTERS_CONF_DIR = '/etc/nova/rootwrap.d'
-FILTERS_CONF = '%s/network.filters' % FILTERS_CONF_DIR
 
 BASE_RESOURCE_MAP = OrderedDict([
     (PG_CONF, {
         'services': ['plumgrid'],
         'contexts': [pg_gw_context.PGGwContext()],
     }),
-    (PGHN_CONF, {
+    (PG_HN_CONF, {
         'services': ['plumgrid'],
         'contexts': [pg_gw_context.PGGwContext()],
     }),
-    (PGHS_CONF, {
+    (PG_HS_CONF, {
         'services': ['plumgrid'],
         'contexts': [pg_gw_context.PGGwContext()],
     }),
-    (PGIFCS_CONF, {
-        'services': [],
-        'contexts': [pg_gw_context.PGGwContext()],
-    }),
-    (FILTERS_CONF, {
+    (PG_IFCS_CONF, {
         'services': [],
         'contexts': [pg_gw_context.PGGwContext()],
     }),
 ])
 
-TEMPLATES = 'templates/'
-
 
 def determine_packages():
+    '''
+    Returns list of packages required by PLUMgrid Gateway as specified
+    in the neutron_plugins dictionary in charmhelpers.
+    '''
     return neutron_plugin_attribute('plumgrid', 'packages', 'neutron')
 
 
 def register_configs(release=None):
-    release = release or os_release('neutron-common', base='icehouse')
+    '''
+    Returns an object of the Openstack Tempating Class which contains the
+    the context required for all templates of this charm.
+    '''
+    release = release or os_release('nova-compute', base='kilo')
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
     for cfg, rscs in resource_map().iteritems():
@@ -92,37 +92,104 @@ def restart_map():
     Constructs a restart map based on charm config settings and relation
     state.
     '''
-    return {k: v['services'] for k, v in resource_map().iteritems()}
+    return {cfg: rscs['services'] for cfg, rscs in resource_map().iteritems()}
 
 
 def ensure_files():
-    _exec_cmd(cmd=['cp', '--remove-destination', '-f', P_PG_CONF, PG_CONF])
+    '''
+    Ensures PLUMgrid specific files exist before templates are written.
+    '''
     write_file(SUDOERS_CONF, "\nnova ALL=(root) NOPASSWD: /opt/pg/bin/ifc_ctl_pp *\n", owner='root', group='root', perms=0o644)
-    _exec_cmd(cmd=['mkdir', '-p', FILTERS_CONF_DIR])
-    _exec_cmd(cmd=['touch', FILTERS_CONF])
 
 
 def restart_pg():
-    _exec_cmd(cmd=['virsh', '-c', 'lxc:', 'destroy', 'plumgrid'], error_msg='ERROR Destroying PLUMgrid')
-    _exec_cmd(cmd=['rm', IFCTL_CONF, IFCTL_P_CONF], error_msg='ERROR Removing ifc_ctl_gateway file')
+    '''
+    Stops and Starts PLUMgrid service after flushing iptables.
+    '''
+    service_stop('plumgrid')
+    time.sleep(2)
     _exec_cmd(cmd=['iptables', '-F'])
-    _exec_cmd(cmd=['virsh', '-c', 'lxc:', 'start', 'plumgrid'], error_msg='ERROR Starting PLUMgrid')
-    time.sleep(5)
-    _exec_cmd(cmd=['service', 'plumgrid', 'start'], error_msg='ERROR starting PLUMgrid service')
+    service_start('plumgrid')
     time.sleep(5)
 
 
 def stop_pg():
-    _exec_cmd(cmd=['virsh', '-c', 'lxc:', 'destroy', 'plumgrid'], error_msg='ERROR Destroying PLUMgrid')
+    '''
+    Stops PLUMgrid service.
+    '''
+    service_stop('plumgrid')
     time.sleep(2)
-    _exec_cmd(cmd=['rm', IFCTL_CONF, IFCTL_P_CONF], error_msg='ERROR Removing ifc_ctl_gateway file')
 
 
-def _exec_cmd(cmd=None, error_msg='Command exited with ERRORs'):
+def load_iovisor():
+    '''
+    Loads iovisor kernel module.
+    '''
+    modprobe('iovisor')
+
+
+def remove_iovisor():
+    '''
+    Removes iovisor kernel module.
+    '''
+    _exec_cmd(cmd=['rmmod', 'iovisor'], error_msg='Error Loading Iovisor Kernel Module')
+
+
+def ensure_mtu():
+    '''
+    Ensures required MTU of the underlying networking of the node.
+    '''
+    log("Changing MTU of juju-br0 and all attached interfaces")
+    interface_mtu = config('network-device-mtu')
+    cmd = subprocess.check_output(["brctl", "show", "juju-br0"])
+    words = cmd.split()
+    for word in words:
+        if 'eth' in word:
+            set_nic_mtu(word, interface_mtu)
+    set_nic_mtu('juju-br0', interface_mtu)
+
+
+def _exec_cmd(cmd=None, error_msg='Command exited with ERRORs', fatal=False):
+    '''
+    Function to execute any bash command on the node.
+    '''
     if cmd is None:
-        log("NO command")
+        log("No command specified")
     else:
-        try:
+        if fatal:
             subprocess.check_call(cmd)
-        except subprocess.CalledProcessError, e:
-            log(error_msg)
+        else:
+            try:
+                subprocess.check_call(cmd)
+            except subprocess.CalledProcessError:
+                log(error_msg)
+
+
+def add_lcm_key():
+    '''
+    Adds public key of PLUMgrid-lcm to authorized keys of PLUMgrid Gateway.
+    '''
+    key = config('lcm-ssh-key')
+    if key == 'null':
+        log('lcm key not specified')
+        return 0
+    file_write_type = 'w+'
+    if os.path.isfile(AUTH_KEY_PATH):
+        file_write_type = 'a'
+        try:
+            fr = open(AUTH_KEY_PATH, 'r')
+        except IOError:
+            log('plumgrid-lxc not installed yet')
+            return 0
+        for line in fr:
+            if key in line:
+                log('key already added')
+                return 0
+    try:
+        fa = open(AUTH_KEY_PATH, file_write_type)
+    except IOError:
+        log('Error opening file to append')
+        return 0
+    fa.write(key)
+    fa.write('\n')
+    fa.close()

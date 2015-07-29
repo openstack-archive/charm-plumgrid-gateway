@@ -10,9 +10,5 @@ description: |
 tags:
   - openstack
 requires:
-  plumgrid-plugin:
-    interface: plumgrid-plugin
   plumgrid:
     interface: plumgrid
-  neutron-plugin-api:
-    interface: neutron-plugin-api

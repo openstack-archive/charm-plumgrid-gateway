@@ -44,6 +44,7 @@ from charmhelpers.core.hookenv import (
     ERROR,
     WARNING,
     unit_get,
+    is_leader as juju_is_leader
 )
 from charmhelpers.core.decorators import (
     retry_on_exception,
@@ -63,17 +64,30 @@ class CRMResourceNotFound(Exception):
     pass
 
 
+class CRMDCNotFound(Exception):
+    pass
+
+
 def is_elected_leader(resource):
     """
     Returns True if the charm executing this is the elected cluster leader.
 
     It relies on two mechanisms to determine leadership:
-        1. If the charm is part of a corosync cluster, call corosync to
+        1. If juju is sufficiently new and leadership election is supported,
+        the is_leader command will be used.
+        2. If the charm is part of a corosync cluster, call corosync to
         determine leadership.
-        2. If the charm is not part of a corosync cluster, the leader is
+        3. If the charm is not part of a corosync cluster, the leader is
         determined as being "the alive unit with the lowest unit numer". In
         other words, the oldest surviving unit.
     """
+    try:
+        return juju_is_leader()
+    except NotImplementedError:
+        log('Juju leadership election feature not enabled'
+            ', using fallback support',
+            level=WARNING)
+
     if is_clustered():
         if not is_crm_leader(resource):
             log('Deferring action to CRM leader.', level=INFO)
@@ -106,8 +120,9 @@ def is_crm_dc():
         status = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         if not isinstance(status, six.text_type):
             status = six.text_type(status, "utf-8")
-    except subprocess.CalledProcessError:
-        return False
+    except subprocess.CalledProcessError as ex:
+        raise CRMDCNotFound(str(ex))
+
     current_dc = ''
     for line in status.split('\n'):
         if line.startswith('Current DC'):
@@ -115,10 +130,14 @@ def is_crm_dc():
             current_dc = line.split(':')[1].split()[0]
     if current_dc == get_unit_hostname():
         return True
+    elif current_dc == 'NONE':
+        raise CRMDCNotFound('Current DC: NONE')
+
     return False
 
 
-@retry_on_exception(5, base_delay=2, exc_type=CRMResourceNotFound)
+@retry_on_exception(5, base_delay=2,
+                    exc_type=(CRMResourceNotFound, CRMDCNotFound))
 def is_crm_leader(resource, retry=False):
     """
     Returns True if the charm calling this is the elected corosync leader,
