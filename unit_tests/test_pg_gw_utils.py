@@ -50,11 +50,10 @@ class TestPGGwUtils(CharmTestCase):
         self.os_release.return_value = 'trusty'
         templating.OSConfigRenderer.side_effect = _mock_OSConfigRenderer
         _regconfs = nutils.register_configs()
-        confs = ['/var/lib/libvirt/filesystems/plumgrid/opt/pg/etc/plumgrid.conf',
+        confs = ['/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/plumgrid.conf',
                  '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hostname',
                  '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hosts',
-                 '/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/ifcs.conf',
-                 '/etc/nova/rootwrap.d/network.filters']
+                 '/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/ifcs.conf']
         self.assertItemsEqual(_regconfs.configs, confs)
 
     def test_resource_map(self):
@@ -68,10 +67,9 @@ class TestPGGwUtils(CharmTestCase):
         _restart_map = nutils.restart_map()
         expect = OrderedDict([
             (nutils.PG_CONF, ['plumgrid']),
-            (nutils.PGHN_CONF, ['plumgrid']),
-            (nutils.PGHS_CONF, ['plumgrid']),
-            (nutils.PGIFCS_CONF, []),
-            (nutils.FILTERS_CONF, []),
+            (nutils.PG_HN_CONF, ['plumgrid']),
+            (nutils.PG_HS_CONF, ['plumgrid']),
+            (nutils.PG_IFCS_CONF, []),
         ])
         self.assertEqual(expect, _restart_map)
         for item in _restart_map:

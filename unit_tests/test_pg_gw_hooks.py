@@ -54,8 +54,7 @@ class PGGwHooksTests(CharmTestCase):
         self.configure_sources.assert_called_with(update=True)
         self.apt_install.assert_has_calls([
             call(_pkgs, fatal=True,
-                 options=['--force-yes',
-                          '--option=Dpkg::Options::=--force-confold']),
+                 options=['--force-yes']),
         ])
         self.load_iovisor.assert_called_with()
         self.ensure_mtu.assert_called_with()
@@ -78,8 +77,7 @@ class PGGwHooksTests(CharmTestCase):
         self.configure_sources.assert_called_with(update=True)
         self.apt_install.assert_has_calls([
             call(_pkgs, fatal=True,
-                 options=['--force-yes',
-                          '--option=Dpkg::Options::=--force-confold']),
+                 options=['--force-yes']),
         ])
         self.load_iovisor.assert_called_with()
         self.ensure_mtu.assert_called_with()
