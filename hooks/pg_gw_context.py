@@ -17,17 +17,12 @@ def _pg_dir_settings():
     '''
     Inspects relation with PLUMgrid director.
     '''
-    pg_settings = {
-        'pg_dir_ip': '192.168.100.201',
-    }
+    director_ips=[]
     for rid in relation_ids('plumgrid'):
         for unit in related_units(rid):
             rdata = relation_get(rid=rid, unit=unit)
-            pg_settings = {
-                'pg_dir_ip': rdata['private-address'],
-            }
-    return pg_settings
-
+            director_ips.append(str(rdata['private-address']))
+    return director_ips
 
 class PGGwContext(context.NeutronContext):
 
@@ -63,12 +58,21 @@ class PGGwContext(context.NeutronContext):
             return {}
 
         conf = config()
+        pg_dir_ips = ''
         pg_dir_settings = _pg_dir_settings()
-        pg_ctxt['local_ip'] = pg_dir_settings['pg_dir_ip']
-
+        single_ip = True
+        for ip in pg_dir_settings:
+            if single_ip:
+                pg_dir_ips=str(ip)
+                single_ip = False
+            else:
+                pg_dir_ips= pg_dir_ips + ',' + str(ip)
+        pg_ctxt['local_ip'] = pg_dir_ips
         unit_hostname = get_unit_hostname()
         pg_ctxt['pg_hostname'] = unit_hostname
-        pg_ctxt['interface'] = "juju-br0"
+        from pg_gw_utils import check_interface_type
+        interface_type = check_interface_type()
+        pg_ctxt['interface'] = interface_type
         pg_ctxt['label'] = unit_hostname
         pg_ctxt['fabric_mode'] = 'host'
 
