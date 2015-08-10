@@ -51,6 +51,7 @@ def install():
 
 
 @hooks.hook('plumgrid-relation-joined')
+@hooks.hook('plumgrid-relation-changed')
 def plumgrid_joined():
     '''
     This hook is run when relation between plumgrid-gateway and

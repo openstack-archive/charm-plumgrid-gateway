@@ -1,10 +1,10 @@
 from test_utils import CharmTestCase
 from mock import patch
 import pg_gw_context as context
+import pg_gw_utils as utils
 import charmhelpers
 
 TO_PATCH = [
-    #'_pg_dir_settings',
     'config',
     'get_unit_hostname',
 ]
@@ -38,7 +38,8 @@ class PGGwContextTest(CharmTestCase):
     @patch.object(context.PGGwContext, '_save_flag_file')
     @patch.object(context, '_pg_dir_settings')
     @patch.object(charmhelpers.contrib.openstack.context, 'neutron_plugin_attribute')
-    def test_neutroncc_context_api_rel(self, _npa, _pg_dir_settings, _save_flag_file,
+    @patch.object(utils, 'check_interface_type')
+    def test_neutroncc_context_api_rel(self, _int_type, _npa, _pg_dir_settings, _save_flag_file,
                                        _config_flag, _unit_get, _unit_priv_ip, _config,
                                        _is_clus, _https, _ens_pkgs):
         def mock_npa(plugin, section, manager):
@@ -63,12 +64,13 @@ class PGGwContextTest(CharmTestCase):
         _is_clus.return_value = False
         _config_flag.return_value = False
         _pg_dir_settings.return_value = {'pg_dir_ip': '192.168.100.201'}
+        _int_type.return_value = 'juju-br0'
         napi_ctxt = context.PGGwContext()
         expect = {
             'ext_interface': "eth1",
             'config': 'neutron.randomconfig',
             'core_plugin': 'neutron.randomdriver',
-            'local_ip': '192.168.100.201',
+            'local_ip': 'pg_dir_ip',
             'network_manager': 'neutron',
             'neutron_plugin': 'plumgrid',
             'neutron_security_groups': None,
