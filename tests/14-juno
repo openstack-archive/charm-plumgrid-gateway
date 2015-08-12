@@ -46,7 +46,7 @@ class TestDeployment(unittest.TestCase):
     def test_plumgrid_gateway_relation(self):
         pg_sentry = self.deployment.sentry['plumgrid-gateway/0']
         relation = pg_sentry.relation(
-            'plumgrid-plugin', 'neutron-iovisor:plumgrid-plugin')
+            'plumgrid', 'plumgrid-director:plumgrid')
         if not relation['private-address']:
             amulet.raise_status(
                 amulet.FAIL, msg='Relation not found.')

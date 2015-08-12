@@ -21,3 +21,7 @@ sync: bin/charm_helpers_sync.py
 publish: lint unit_test
 	bzr push lp:charms/plumgrid-gateway
 	bzr push lp:charms/trusty/plumgrid-gateway
+
+test:
+	@echo Starting Amulet tests...
+	@juju test -v -p AMULET_HTTP_PROXY,AMULET_OS_VIP --timeout 2700
