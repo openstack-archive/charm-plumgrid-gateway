@@ -212,3 +212,4 @@ def add_lcm_key():
     fa.write(key)
     fa.write('\n')
     fa.close()
+    return 1

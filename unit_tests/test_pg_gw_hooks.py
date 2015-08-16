@@ -71,6 +71,7 @@ class PGGwHooksTests(CharmTestCase):
 
     def test_config_changed_hook(self):
         _pkgs = ['plumgrid-lxc', 'iovisor-dkms']
+        self.add_lcm_key.return_value = 0
         self.determine_packages.return_value = [_pkgs]
         self._call_hook('config-changed')
         self.stop_pg.assert_called_with()
@@ -82,7 +83,6 @@ class PGGwHooksTests(CharmTestCase):
         self.load_iovisor.assert_called_with()
         self.ensure_mtu.assert_called_with()
         self.ensure_files.assert_called_with()
-        self.add_lcm_key.assert_called_with()
         self.CONFIGS.write_all.assert_called_with()
         self.restart_pg.assert_called_with()
 
