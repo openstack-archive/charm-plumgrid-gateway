@@ -1,14 +1,18 @@
 #!/usr/bin/make
 PYTHON := /usr/bin/env python
 
-lint:
-	@flake8 --exclude hooks/charmhelpers hooks
-	@flake8 --exclude hooks/charmhelpers unit_tests
+virtualenv:
+	virtualenv .venv
+	.venv/bin/pip install flake8 nose coverage mock pyyaml netifaces \
+        netaddr jinja2
+
+lint: virtualenv
+	.venv/bin/flake8 --exclude hooks/charmhelpers hooks unit_tests tests
 	@charm proof
 
-unit_test:
+unit_test: virtualenv
 	@echo Starting tests...
-	@$(PYTHON) /usr/bin/nosetests --nologcapture unit_tests
+	@.venv/bin/nosetests --nologcapture  --with-coverage unit_tests
 
 bin/charm_helpers_sync.py:
 	@mkdir -p bin

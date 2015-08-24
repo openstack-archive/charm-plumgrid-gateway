@@ -31,7 +31,7 @@ class TestPGGwUtils(CharmTestCase):
 
     def setUp(self):
         super(TestPGGwUtils, self).setUp(nutils, TO_PATCH)
-        #self.config.side_effect = self.test_config.get
+        # self.config.side_effect = self.test_config.get
 
     def tearDown(self):
         # Reset cached cache
@@ -50,10 +50,10 @@ class TestPGGwUtils(CharmTestCase):
         self.os_release.return_value = 'trusty'
         templating.OSConfigRenderer.side_effect = _mock_OSConfigRenderer
         _regconfs = nutils.register_configs()
-        confs = ['/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/plumgrid.conf',
-                 '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hostname',
-                 '/var/lib/libvirt/filesystems/plumgrid-data/conf/etc/hosts',
-                 '/var/lib/libvirt/filesystems/plumgrid-data/conf/pg/ifcs.conf']
+        confs = [nutils.PG_CONF,
+                 nutils.PG_HN_CONF,
+                 nutils.PG_HS_CONF,
+                 nutils.PG_IFCS_CONF]
         self.assertItemsEqual(_regconfs.configs, confs)
 
     def test_resource_map(self):

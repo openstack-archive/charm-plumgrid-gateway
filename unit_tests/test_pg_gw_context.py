@@ -34,13 +34,16 @@ class PGGwContextTest(CharmTestCase):
     @patch.object(charmhelpers.contrib.openstack.context, 'config')
     @patch.object(charmhelpers.contrib.openstack.context, 'unit_private_ip')
     @patch.object(charmhelpers.contrib.openstack.context, 'unit_get')
-    @patch.object(charmhelpers.contrib.openstack.context, 'config_flags_parser')
+    @patch.object(charmhelpers.contrib.openstack.context,
+                  'config_flags_parser')
     @patch.object(context.PGGwContext, '_save_flag_file')
     @patch.object(context, '_pg_dir_settings')
-    @patch.object(charmhelpers.contrib.openstack.context, 'neutron_plugin_attribute')
+    @patch.object(charmhelpers.contrib.openstack.context,
+                  'neutron_plugin_attribute')
     @patch.object(utils, 'check_interface_type')
-    def test_neutroncc_context_api_rel(self, _int_type, _npa, _pg_dir_settings, _save_flag_file,
-                                       _config_flag, _unit_get, _unit_priv_ip, _config,
+    def test_neutroncc_context_api_rel(self, _int_type, _npa, _pg_dir_settings,
+                                       _save_flag_file, _config_flag,
+                                       _unit_get, _unit_priv_ip, _config,
                                        _is_clus, _https, _ens_pkgs):
         def mock_npa(plugin, section, manager):
             if section == "driver":

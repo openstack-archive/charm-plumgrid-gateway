@@ -6,7 +6,7 @@ Once deployed the charm triggers the necessary services for a PLUMgrid Gateway a
 
 # Usage
 
-Step by step instructions on using the charm:
+Instructions on using the charm:
 
     juju deploy neutron-api
     juju deploy neutron-api-plumgrid

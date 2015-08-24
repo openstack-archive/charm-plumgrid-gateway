@@ -39,8 +39,7 @@ class PGGwHooksTests(CharmTestCase):
 
     def setUp(self):
         super(PGGwHooksTests, self).setUp(hooks, TO_PATCH)
-
-        #self.config.side_effect = self.test_config.get
+        # self.config.side_effect = self.test_config.get
         hooks.hooks._config_save = False
 
     def _call_hook(self, hookname):

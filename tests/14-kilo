@@ -9,7 +9,7 @@ class TestDeployment(unittest.TestCase):
     def setUpClass(cls):
         cls.deployment = amulet.Deployment(series='trusty')
         cls.deployment.load_bundle_file(
-            bundle_file='files/plumgrid-gateway.yaml',
+            bundle_file='tests/files/plumgrid-gateway.yaml',
             deployment_name='test')
         try:
             cls.deployment.setup(timeout=2000)
@@ -20,20 +20,6 @@ class TestDeployment(unittest.TestCase):
                 msg="Environment wasn't stood up in time")
         except:
             raise
-
-    def test_plumgrid_gateway_external_interface(self):
-        pg_sentry = self.deployment.sentry['plumgrid-gateway/0']
-        pg_options = self.deployment.services['plumgrid-gateway']['options']
-        external_interface = pg_options['external-interface']
-        if not external_interface:
-            amulet.raise_status(
-                amulet.FAIL,
-                msg='plumgrid external-interface parameter was not found.')
-        output, code = pg_sentry.run("ethtool {}".format(external_interface))
-        if code != 0:
-            amulet.raise_status(
-                amulet.FAIL,
-                msg='external interface not found on the host')
 
     def test_plumgrid_gateway_started(self):
         pg_sentry = self.deployment.sentry['plumgrid-gateway/0']

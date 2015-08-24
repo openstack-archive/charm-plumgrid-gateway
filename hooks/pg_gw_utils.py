@@ -100,7 +100,9 @@ def ensure_files():
     '''
     Ensures PLUMgrid specific files exist before templates are written.
     '''
-    write_file(SUDOERS_CONF, "\nnova ALL=(root) NOPASSWD: /opt/pg/bin/ifc_ctl_pp *\n", owner='root', group='root', perms=0o644)
+    write_file(SUDOERS_CONF,
+               "\nnova ALL=(root) NOPASSWD: /opt/pg/bin/ifc_ctl_pp *\n",
+               owner='root', group='root', perms=0o644)
 
 
 def restart_pg():
@@ -133,7 +135,8 @@ def remove_iovisor():
     '''
     Removes iovisor kernel module.
     '''
-    _exec_cmd(cmd=['rmmod', 'iovisor'], error_msg='Error Loading Iovisor Kernel Module')
+    _exec_cmd(cmd=['rmmod', 'iovisor'],
+              error_msg='Error Loading Iovisor Kernel Module')
 
 
 def check_interface_type():
