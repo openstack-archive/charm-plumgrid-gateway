@@ -1,3 +1,7 @@
+# About the Plumgrid Platform
+
+The PLUMgrid Platform is a software-only solution that provides a rich set of distributed network functions such as routers, switches, NAT, IPAM, DHCP, and it also supports security policies, end-to-end encryption, and third party Layer 4-7 service insertion.
+
 # Overview
 
 This charm is responsible for configuring a node as a PLUMgrid Gateway.
