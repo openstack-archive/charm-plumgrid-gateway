@@ -7,7 +7,6 @@ from charmhelpers.core.hookenv import (
     relation_ids,
     related_units,
     relation_get,
-    config,
 )
 from charmhelpers.contrib.openstack import context
 
@@ -60,7 +59,6 @@ class PGGwContext(context.NeutronContext):
         if not pg_ctxt:
             return {}
 
-        conf = config()
         pg_dir_ips = ''
         pg_dir_settings = _pg_dir_settings()
         single_ip = True
@@ -73,12 +71,10 @@ class PGGwContext(context.NeutronContext):
         pg_ctxt['local_ip'] = pg_dir_ips
         unit_hostname = get_unit_hostname()
         pg_ctxt['pg_hostname'] = unit_hostname
-        from pg_gw_utils import check_interface_type
-        interface_type = check_interface_type()
-        pg_ctxt['interface'] = interface_type
+        from pg_gw_utils import check_interface_type, get_gw_interfaces
+        pg_ctxt['interface'] = check_interface_type()
         pg_ctxt['label'] = unit_hostname
         pg_ctxt['fabric_mode'] = 'host'
-
-        pg_ctxt['ext_interface'] = conf['external-interface']
+        pg_ctxt['ext_interfaces'] = get_gw_interfaces()
 
         return pg_ctxt

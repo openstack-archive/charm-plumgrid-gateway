@@ -1,8 +1,10 @@
 options:
-  external-interface:
-    default: eth1
+  external-interfaces:
+    default: '{"hostname":"eth1,eth2"}'
     type: string
-    description: The interface that will provide external connectivity
+    description: |
+       One or multiple interfaces that will provide external connectivity on
+       each of the gateway nodes. Provided in form of json in a string.
   lcm-ssh-key:
     default: 'null'
     type: string

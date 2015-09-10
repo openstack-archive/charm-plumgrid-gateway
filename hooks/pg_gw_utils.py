@@ -20,11 +20,13 @@ from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
+from socket import gethostname as get_unit_hostname
 import pg_gw_context
 import subprocess
 import time
 import os
 import re
+import json
 
 LXC_CONF = "/etc/libvirt/lxc.conf"
 TEMPLATES = 'templates/'
@@ -35,6 +37,7 @@ PG_HN_CONF = '%s/conf/etc/hostname' % PG_LXC_DATA_PATH
 PG_HS_CONF = '%s/conf/etc/hosts' % PG_LXC_DATA_PATH
 PG_IFCS_CONF = '%s/conf/pg/ifcs.conf' % PG_LXC_DATA_PATH
 AUTH_KEY_PATH = '%s/root/.ssh/authorized_keys' % PG_LXC_DATA_PATH
+IFC_LIST_GW = '/var/run/plumgrid/lxc/ifc_list_gateway'
 
 SUDOERS_CONF = '/etc/sudoers.d/ifc_ctl_sudoers'
 
@@ -103,6 +106,7 @@ def ensure_files():
     write_file(SUDOERS_CONF,
                "\nnova ALL=(root) NOPASSWD: /opt/pg/bin/ifc_ctl_pp *\n",
                owner='root', group='root', perms=0o644)
+    _exec_cmd(cmd=['rm', '-f', IFC_LIST_GW])
 
 
 def restart_pg():
@@ -153,6 +157,23 @@ def check_interface_type():
         return AWS_interface
     else:
         return default_interface
+
+
+def get_gw_interfaces():
+    '''
+    Gateway node can have multiple interfaces. This function parses json
+    provided in config to get all gateway interfaces for this node.
+    '''
+    node_interfaces = ['eth1']
+    try:
+        all_interfaces = json.loads(config('external-interfaces'))
+    except ValueError:
+        log("Invalid JSON")
+        return node_interfaces
+    hostname = get_unit_hostname()
+    if hostname in all_interfaces:
+        node_interfaces = all_interfaces[hostname].split(',')
+    return node_interfaces
 
 
 def ensure_mtu():

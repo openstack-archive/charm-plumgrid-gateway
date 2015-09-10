@@ -36,7 +36,7 @@ This is an early access version of the PLUMgrid Gateway charm and it is not mean
 Example Config
 
     plumgrid-gateway:
-        external-interface: eth1
+        external-interfaces: '{"node01":"eth5,eth2","node02":"eth4,eth8"}'
         install_sources: 'ppa:plumgrid-team/stable'
         install_keys: 'null'
     plumgrid-edge:
@@ -54,7 +54,7 @@ Example Config
         neutron-plugin: "plumgrid"
         plumgrid-virtual-ip: "192.168.100.250"
 
-The "external-interface" config parameter should be the interface that will provide external connectivity. 
+The "external-interfaces" config parameter should be the interfaces that will provide external connectivity on each of the gateway nodes. Should be provided as a json in a string with hostname and interface names.
 Provide the source repo path for PLUMgrid Debs in 'install_sources' and the corresponding keys in 'install_keys'.
 The virtual IP passed on in the neutron-api charm has to be same as the one passed in the plumgrid-director charm.
 

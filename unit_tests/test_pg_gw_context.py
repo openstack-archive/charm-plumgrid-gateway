@@ -5,7 +5,6 @@ import pg_gw_utils as utils
 import charmhelpers
 
 TO_PATCH = [
-    'config',
     'get_unit_hostname',
 ]
 
@@ -22,8 +21,6 @@ class PGGwContextTest(CharmTestCase):
 
     def setUp(self):
         super(PGGwContextTest, self).setUp(context, TO_PATCH)
-        self.config.side_effect = self.test_config.get
-        self.test_config.set('external-interface', 'eth1')
 
     def tearDown(self):
         super(PGGwContextTest, self).tearDown()
@@ -41,7 +38,9 @@ class PGGwContextTest(CharmTestCase):
     @patch.object(charmhelpers.contrib.openstack.context,
                   'neutron_plugin_attribute')
     @patch.object(utils, 'check_interface_type')
-    def test_neutroncc_context_api_rel(self, _int_type, _npa, _pg_dir_settings,
+    @patch.object(utils, 'get_gw_interfaces')
+    def test_neutroncc_context_api_rel(self, _gw_int, _int_type,
+                                       _npa, _pg_dir_settings,
                                        _save_flag_file, _config_flag,
                                        _unit_get, _unit_priv_ip, _config,
                                        _is_clus, _https, _ens_pkgs):
@@ -50,16 +49,8 @@ class PGGwContextTest(CharmTestCase):
                 return "neutron.randomdriver"
             if section == "config":
                 return "neutron.randomconfig"
-        config = {'external-interface': "eth1"}
-
-        def mock_config(key=None):
-            if key:
-                return config.get(key)
-
-            return config
 
         self.maxDiff = None
-        self.config.side_effect = mock_config
         _npa.side_effect = mock_npa
         _unit_get.return_value = '192.168.100.201'
         _unit_priv_ip.return_value = '192.168.100.201'
@@ -68,9 +59,10 @@ class PGGwContextTest(CharmTestCase):
         _config_flag.return_value = False
         _pg_dir_settings.return_value = {'pg_dir_ip': '192.168.100.201'}
         _int_type.return_value = 'juju-br0'
+        _gw_int.return_value = ['eth1']
         napi_ctxt = context.PGGwContext()
         expect = {
-            'ext_interface': "eth1",
+            'ext_interfaces': ['eth1'],
             'config': 'neutron.randomconfig',
             'core_plugin': 'neutron.randomdriver',
             'local_ip': 'pg_dir_ip',
