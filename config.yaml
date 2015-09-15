@@ -9,6 +9,10 @@ options:
     default: 'null'
     type: string
     description: Public SSH key of PLUMgrid LCM which is running PG-Tools
+  mgmt-interface:
+    type: string
+    default: 'juju-br0'
+    description: The interface connected to PLUMgrid Managment network.
   network-device-mtu:
     type: string
     default: '1580'

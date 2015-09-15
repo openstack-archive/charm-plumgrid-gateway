@@ -37,9 +37,9 @@ class PGGwContextTest(CharmTestCase):
     @patch.object(context, '_pg_dir_settings')
     @patch.object(charmhelpers.contrib.openstack.context,
                   'neutron_plugin_attribute')
-    @patch.object(utils, 'check_interface_type')
+    @patch.object(utils, 'get_mgmt_interface')
     @patch.object(utils, 'get_gw_interfaces')
-    def test_neutroncc_context_api_rel(self, _gw_int, _int_type,
+    def test_neutroncc_context_api_rel(self, _gw_int, _mgmt_int,
                                        _npa, _pg_dir_settings,
                                        _save_flag_file, _config_flag,
                                        _unit_get, _unit_priv_ip, _config,
@@ -58,7 +58,7 @@ class PGGwContextTest(CharmTestCase):
         _is_clus.return_value = False
         _config_flag.return_value = False
         _pg_dir_settings.return_value = {'pg_dir_ip': '192.168.100.201'}
-        _int_type.return_value = 'juju-br0'
+        _mgmt_int.return_value = 'juju-br0'
         _gw_int.return_value = ['eth1']
         napi_ctxt = context.PGGwContext()
         expect = {
