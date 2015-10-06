@@ -25,3 +25,13 @@ options:
     default: null
     type: string
     description: Provide the respective keys of the install sources
+  plumgrid-build:
+    default: 'latest'
+    type: string
+    description: |
+       Provide the build version of PLUMgrid packages that needs to be installed
+  iovisor-build:
+    default: 'latest'
+    type: string
+    description: |
+       Provide the build version of iovisor package that needs to be installed
