@@ -9,7 +9,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
 )
 from charmhelpers.contrib.openstack import context
-
+from charmhelpers.contrib.openstack.utils import get_host_ip
 from socket import gethostname as get_unit_hostname
 
 
@@ -21,7 +21,7 @@ def _pg_dir_settings():
     for rid in relation_ids('plumgrid'):
         for unit in related_units(rid):
             rdata = relation_get(rid=rid, unit=unit)
-            director_ips.append(str(rdata['private-address']))
+            director_ips.append(str(get_host_ip(rdata['private-address'])))
     return director_ips
 
 
