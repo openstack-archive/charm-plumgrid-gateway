@@ -74,11 +74,11 @@ def config_changed():
         log("PLUMgrid LCM Key added")
         return 1
     stop_pg()
-    remove_iovisor()
     configure_sources(update=True)
     pkgs = determine_packages()
     for pkg in pkgs:
         apt_install(pkg, options=['--force-yes'], fatal=True)
+    remove_iovisor()
     load_iovisor()
     ensure_mtu()
     ensure_files()
