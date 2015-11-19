@@ -140,10 +140,10 @@ def restart_pg():
     Stops and Starts PLUMgrid service after flushing iptables.
     '''
     service_stop('plumgrid')
-    time.sleep(2)
+    time.sleep(30)
     _exec_cmd(cmd=['iptables', '-F'])
     service_start('plumgrid')
-    time.sleep(5)
+    time.sleep(30)
 
 
 def stop_pg():
@@ -167,6 +167,7 @@ def remove_iovisor():
     '''
     _exec_cmd(cmd=['rmmod', 'iovisor'],
               error_msg='Error Loading Iovisor Kernel Module')
+    time.sleep(1)
 
 
 def get_mgmt_interface():
