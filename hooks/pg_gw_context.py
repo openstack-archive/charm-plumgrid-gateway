@@ -71,8 +71,13 @@ class PGGwContext(context.NeutronContext):
         pg_ctxt['local_ip'] = pg_dir_ips
         unit_hostname = get_unit_hostname()
         pg_ctxt['pg_hostname'] = unit_hostname
-        from pg_gw_utils import get_mgmt_interface, get_gw_interfaces
+        from pg_gw_utils import (
+            get_mgmt_interface,
+            get_gw_interfaces,
+            get_fabric_interface
+        )
         pg_ctxt['interface'] = get_mgmt_interface()
+        pg_ctxt['fabric_interface'] = get_fabric_interface()
         pg_ctxt['label'] = unit_hostname
         pg_ctxt['fabric_mode'] = 'host'
         pg_ctxt['ext_interfaces'] = get_gw_interfaces()

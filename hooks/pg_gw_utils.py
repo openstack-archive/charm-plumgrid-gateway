@@ -13,6 +13,8 @@ from charmhelpers.contrib.network.ip import (
     get_iface_from_addr,
     get_bridges,
     get_bridge_nics,
+    is_address_in_network,
+    get_iface_addr
 )
 from charmhelpers.core.host import (
     write_file,
@@ -170,22 +172,23 @@ def remove_iovisor():
     time.sleep(1)
 
 
+def interface_exists(interface):
+    '''
+    Checks if interface exists on node.
+    '''
+    try:
+        subprocess.check_call(['ip', 'link', 'show', interface],
+                              stdout=open(os.devnull, 'w'),
+                              stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        return False
+    return True
+
+
 def get_mgmt_interface():
     '''
     Returns the managment interface.
     '''
-    def interface_exists(interface):
-        '''
-        Checks if interface exists on node.
-        '''
-        try:
-            subprocess.check_call(['ip', 'link', 'show', interface],
-                                  stdout=open(os.devnull, 'w'),
-                                  stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError:
-            return False
-        return True
-
     mgmt_interface = config('mgmt-interface')
     if interface_exists(mgmt_interface):
         return mgmt_interface
@@ -195,20 +198,74 @@ def get_mgmt_interface():
         return get_iface_from_addr(unit_get('private-address'))
 
 
+def fabric_interface_changed():
+    '''
+    Returns true if interface for node changed.
+    '''
+    fabric_interface = get_fabric_interface()
+    try:
+        with open(PG_IFCS_CONF, 'r') as ifcs:
+            for line in ifcs:
+                if 'fabric_core' in line:
+                    if line.split()[0] == fabric_interface:
+                        return False
+    except IOError:
+        return True
+    return True
+
+
+def get_fabric_interface():
+    '''
+    Returns the fabric interface.
+    '''
+    fabric_interfaces = config('fabric-interfaces')
+    if fabric_interfaces == 'MANAGEMENT':
+        return get_mgmt_interface()
+    else:
+        try:
+            all_fabric_interfaces = json.loads(fabric_interfaces)
+        except ValueError:
+            raise ValueError('Invalid json provided for fabric interfaces')
+        hostname = get_unit_hostname()
+        if hostname in all_fabric_interfaces:
+            node_fabric_interface = all_fabric_interfaces[hostname]
+        elif 'DEFAULT' in all_fabric_interfaces:
+            node_fabric_interface = all_fabric_interfaces['DEFAULT']
+        else:
+            raise ValueError('No fabric interface provided for node')
+        if interface_exists(node_fabric_interface):
+            if is_address_in_network(config('os-data-network'),
+                                     get_iface_addr(node_fabric_interface)[0]):
+                return node_fabric_interface
+            else:
+                raise ValueError('Fabric interface not in fabric network')
+        else:
+            log('Provided fabric interface %s does not exist'
+                % node_fabric_interface)
+            raise ValueError('Provided fabric interface does not exist')
+        return node_fabric_interface
+
+
 def get_gw_interfaces():
     '''
     Gateway node can have multiple interfaces. This function parses json
     provided in config to get all gateway interfaces for this node.
     '''
-    node_interfaces = ['eth1']
+    node_interfaces = []
     try:
         all_interfaces = json.loads(config('external-interfaces'))
     except ValueError:
-        log("Invalid JSON")
-        return node_interfaces
+        raise ValueError("Invalid json provided for gateway interfaces")
     hostname = get_unit_hostname()
     if hostname in all_interfaces:
         node_interfaces = all_interfaces[hostname].split(',')
+    elif 'DEFAULT' in all_interfaces:
+        node_interfaces = all_interfaces['DEFAULT'].split(',')
+    for interface in node_interfaces:
+        if not interface_exists(interface):
+            log('Provided gateway interface %s does not exist'
+                % interface)
+            raise ValueError('Provided gateway interface does not exist')
     return node_interfaces
 
 
@@ -217,12 +274,12 @@ def ensure_mtu():
     Ensures required MTU of the underlying networking of the node.
     '''
     interface_mtu = config('network-device-mtu')
-    mgmt_interface = get_mgmt_interface()
-    if mgmt_interface in get_bridges():
-        attached_interfaces = get_bridge_nics(mgmt_interface)
+    fabric_interface = get_fabric_interface()
+    if fabric_interface in get_bridges():
+        attached_interfaces = get_bridge_nics(fabric_interface)
         for interface in attached_interfaces:
             set_nic_mtu(interface, interface_mtu)
-    set_nic_mtu(mgmt_interface, interface_mtu)
+    set_nic_mtu(fabric_interface, interface_mtu)
 
 
 def _exec_cmd(cmd=None, error_msg='Command exited with ERRORs', fatal=False):
