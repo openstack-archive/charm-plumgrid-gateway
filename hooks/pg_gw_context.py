@@ -60,7 +60,7 @@ class PGGwContext(context.NeutronContext):
             return {}
 
         pg_dir_ips = ''
-        pg_dir_settings = _pg_dir_settings()
+        pg_dir_settings = sorted(_pg_dir_settings())
         single_ip = True
         for ip in pg_dir_settings:
             if single_ip:
