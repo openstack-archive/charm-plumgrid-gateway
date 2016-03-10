@@ -22,7 +22,8 @@ from charmhelpers.core.host import (
     service_stop,
 )
 from charmhelpers.fetch import (
-    apt_cache
+    apt_cache,
+    apt_install
 )
 from charmhelpers.contrib.storage.linux.ceph import modprobe
 from charmhelpers.core.host import set_nic_mtu
@@ -143,7 +144,6 @@ def restart_pg():
     '''
     service_stop('plumgrid')
     time.sleep(30)
-    _exec_cmd(cmd=['iptables', '-F'])
     service_start('plumgrid')
     time.sleep(30)
 
@@ -327,3 +327,49 @@ def add_lcm_key():
     fa.write('\n')
     fa.close()
     return 1
+
+
+def load_iptables():
+    network = get_cidr_from_iface(get_mgmt_interface())
+    if network:
+        _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'tcp',
+                   '-j', 'ACCEPT', '-s', network, '-d',
+                   network, '-m', 'state', '--state', 'NEW'])
+        _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'udp', '-j',
+                   'ACCEPT', '-s', network, '-d', network,
+                   '-m', 'state', '--state', 'NEW'])
+        _exec_cmd(['sudo', 'iptables', '-I', 'INPUT', '-s', network,
+                   '-d', '224.0.0.18/32', '-j', 'ACCEPT'])
+    _exec_cmd(['sudo', 'iptables', '-I', 'INPUT', '-p', 'vrrp', '-j',
+               'ACCEPT'])
+    _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'tcp', '-j',
+               'ACCEPT', '-d', config('plumgrid-virtual-ip'), '-m',
+               'state', '--state', 'NEW'])
+    apt_install('iptables-persistent')
+
+
+def get_cidr_from_iface(interface):
+    if not interface:
+        return None
+    apt_install('ohai')
+    try:
+        os_info = subprocess.check_output(['ohai', '-l', 'fatal'])
+    except OSError:
+        log('Unable to get operating system information')
+        return None
+    try:
+        os_info_json = json.loads(os_info)
+    except ValueError:
+        log('Unable to determine network')
+        return None
+    device = os_info_json['network']['interfaces'].get(interface)
+    if device is not None:
+        if device.get('routes'):
+            routes = device['routes']
+            for net in routes:
+                if 'scope' in net:
+                    return net.get('destination')
+        else:
+            return None
+    else:
+        return None

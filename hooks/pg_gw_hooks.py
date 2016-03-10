@@ -30,7 +30,8 @@ from pg_gw_utils import (
     remove_iovisor,
     ensure_mtu,
     add_lcm_key,
-    fabric_interface_changed
+    fabric_interface_changed,
+    load_iptables,
 )
 
 hooks = Hooks()
@@ -42,6 +43,7 @@ def install():
     '''
     Install hook is run when the charm is first deployed on a node.
     '''
+    load_iptables()
     configure_sources(update=True)
     pkgs = determine_packages()
     for pkg in pkgs:
