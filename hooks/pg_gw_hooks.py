@@ -100,6 +100,11 @@ def config_changed():
     restart_pg()
 
 
+@hooks.hook('upgrade-charm')
+def upgrade_charm():
+    load_iptables()
+
+
 @hooks.hook('stop')
 def stop():
     '''

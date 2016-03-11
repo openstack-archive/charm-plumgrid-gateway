@@ -338,14 +338,7 @@ def load_iptables():
         _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'udp', '-j',
                    'ACCEPT', '-s', network, '-d', network,
                    '-m', 'state', '--state', 'NEW'])
-        _exec_cmd(['sudo', 'iptables', '-I', 'INPUT', '-s', network,
-                   '-d', '224.0.0.18/32', '-j', 'ACCEPT'])
-    _exec_cmd(['sudo', 'iptables', '-I', 'INPUT', '-p', 'vrrp', '-j',
-               'ACCEPT'])
-    _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'tcp', '-j',
-               'ACCEPT', '-d', config('plumgrid-virtual-ip'), '-m',
-               'state', '--state', 'NEW'])
-    apt_install('iptables-persistent')
+        apt_install('iptables-persistent')
 
 
 def get_cidr_from_iface(interface):
