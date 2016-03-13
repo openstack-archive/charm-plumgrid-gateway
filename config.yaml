@@ -13,10 +13,28 @@ options:
     type: string
     default: 'juju-br0'
     description: The interface connected to PLUMgrid Managment network.
+  os-data-network:
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the OpenStack Data network (e.g.,
+      192.168.0.0/24)
+      .
+      This network will be used for tenant network traffic in overlay
+      networks.
+  fabric-interfaces:
+    default: 'MANAGEMENT'
+    type: string
+    description: |
+       Interfaces that will provide fabric connectivity on the gateway nodes.
+       Provided in form of json in a string. These interfaces have to be connected 
+       to the os-data-network specified in the config. Default value is MANAGEMENT which
+       will configure the management interface as the fabric interface on each
+       director.
   network-device-mtu:
     type: string
     default: '1580'
-    description: The MTU size for interfaces managed by director.
+    description: The MTU size for interfaces managed by gateway.
   install_sources:
     default: 'ppa:plumgrid-team/stable'
     type: string

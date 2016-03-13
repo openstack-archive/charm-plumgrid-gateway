@@ -1,5 +1,6 @@
 from mock import MagicMock, patch, call
 from test_utils import CharmTestCase
+
 with patch('charmhelpers.core.hookenv.config') as config:
     config.return_value = 'neutron'
     import pg_gw_utils as utils
@@ -29,6 +30,7 @@ TO_PATCH = [
     'ensure_mtu',
     'add_lcm_key',
     'determine_packages',
+    'load_iptables'
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
@@ -69,21 +71,8 @@ class PGGwHooksTests(CharmTestCase):
         self.restart_pg.assert_called_with()
 
     def test_config_changed_hook(self):
-        _pkgs = ['plumgrid-lxc', 'iovisor-dkms']
-        self.add_lcm_key.return_value = 0
-        self.determine_packages.return_value = [_pkgs]
+        self.add_lcm_key.return_value = 1
         self._call_hook('config-changed')
-        self.stop_pg.assert_called_with()
-        self.configure_sources.assert_called_with(update=True)
-        self.apt_install.assert_has_calls([
-            call(_pkgs, fatal=True,
-                 options=['--force-yes']),
-        ])
-        self.load_iovisor.assert_called_with()
-        self.ensure_mtu.assert_called_with()
-        self.ensure_files.assert_called_with()
-        self.CONFIGS.write_all.assert_called_with()
-        self.restart_pg.assert_called_with()
 
     def test_stop(self):
         _pkgs = ['plumgrid-lxc', 'iovisor-dkms']

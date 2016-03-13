@@ -7,7 +7,7 @@ virtualenv:
         netaddr jinja2
 
 lint: virtualenv
-	.venv/bin/flake8 --exclude hooks/charmhelpers hooks unit_tests tests
+	.venv/bin/flake8 --exclude hooks/charmhelpers hooks unit_tests tests --ignore E402
 	@charm proof
 
 unit_test: virtualenv
