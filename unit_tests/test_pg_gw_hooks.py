@@ -30,6 +30,7 @@ TO_PATCH = [
     'ensure_mtu',
     'add_lcm_key',
     'determine_packages',
+    'load_iptables'
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 

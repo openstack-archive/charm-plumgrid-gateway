@@ -2,8 +2,18 @@
 
 # This file contains functions used by the hooks to deploy PLUMgrid Gateway.
 
-from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
+import pg_gw_context
+import subprocess
+import time
+import os
+import json
+from collections import OrderedDict
+from socket import gethostname as get_unit_hostname
 from copy import deepcopy
+from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
+from charmhelpers.contrib.storage.linux.ceph import modprobe
+from charmhelpers.core.host import set_nic_mtu
+from charmhelpers.contrib.openstack import templating
 from charmhelpers.core.hookenv import (
     log,
     config,
@@ -22,33 +32,22 @@ from charmhelpers.core.host import (
     service_stop,
 )
 from charmhelpers.fetch import (
-    apt_cache
+    apt_cache,
+    apt_install
 )
-from charmhelpers.contrib.storage.linux.ceph import modprobe
-from charmhelpers.core.host import set_nic_mtu
-from charmhelpers.contrib.openstack import templating
-from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
-from socket import gethostname as get_unit_hostname
-import pg_gw_context
-import subprocess
-import time
-import os
-import json
 
 LXC_CONF = "/etc/libvirt/lxc.conf"
 TEMPLATES = 'templates/'
 PG_LXC_DATA_PATH = '/var/lib/libvirt/filesystems/plumgrid-data'
-
 PG_CONF = '%s/conf/pg/plumgrid.conf' % PG_LXC_DATA_PATH
 PG_HN_CONF = '%s/conf/etc/hostname' % PG_LXC_DATA_PATH
 PG_HS_CONF = '%s/conf/etc/hosts' % PG_LXC_DATA_PATH
 PG_IFCS_CONF = '%s/conf/pg/ifcs.conf' % PG_LXC_DATA_PATH
 AUTH_KEY_PATH = '%s/root/.ssh/authorized_keys' % PG_LXC_DATA_PATH
 IFC_LIST_GW = '/var/run/plumgrid/lxc/ifc_list_gateway'
-
 SUDOERS_CONF = '/etc/sudoers.d/ifc_ctl_sudoers'
 
 BASE_RESOURCE_MAP = OrderedDict([
@@ -141,9 +140,7 @@ def restart_pg():
     '''
     Stops and Starts PLUMgrid service after flushing iptables.
     '''
-    service_stop('plumgrid')
-    time.sleep(30)
-    _exec_cmd(cmd=['iptables', '-F'])
+    stop_pg()
     service_start('plumgrid')
     time.sleep(30)
 
@@ -153,7 +150,7 @@ def stop_pg():
     Stops PLUMgrid service.
     '''
     service_stop('plumgrid')
-    time.sleep(2)
+    time.sleep(30)
 
 
 def load_iovisor():
@@ -168,7 +165,7 @@ def remove_iovisor():
     Removes iovisor kernel module.
     '''
     _exec_cmd(cmd=['rmmod', 'iovisor'],
-              error_msg='Error Loading Iovisor Kernel Module')
+              error_msg='Error Removing IOVisor Kernel Module')
     time.sleep(1)
 
 
@@ -327,3 +324,48 @@ def add_lcm_key():
     fa.write('\n')
     fa.close()
     return 1
+
+
+def load_iptables():
+    '''
+    Loads iptables rules to allow all PLUMgrid communication.
+    '''
+    network = get_cidr_from_iface(get_mgmt_interface())
+    if network:
+        _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'tcp',
+                   '-j', 'ACCEPT', '-s', network, '-d',
+                   network, '-m', 'state', '--state', 'NEW'])
+        _exec_cmd(['sudo', 'iptables', '-A', 'INPUT', '-p', 'udp', '-j',
+                   'ACCEPT', '-s', network, '-d', network,
+                   '-m', 'state', '--state', 'NEW'])
+        apt_install('iptables-persistent')
+
+
+def get_cidr_from_iface(interface):
+    '''
+    Determines Network CIDR from interface.
+    '''
+    if not interface:
+        return None
+    apt_install('ohai')
+    try:
+        os_info = subprocess.check_output(['ohai', '-l', 'fatal'])
+    except OSError:
+        log('Unable to get operating system information')
+        return None
+    try:
+        os_info_json = json.loads(os_info)
+    except ValueError:
+        log('Unable to determine network')
+        return None
+    device = os_info_json['network']['interfaces'].get(interface)
+    if device is not None:
+        if device.get('routes'):
+            routes = device['routes']
+            for net in routes:
+                if 'scope' in net:
+                    return net.get('destination')
+        else:
+            return None
+    else:
+        return None
