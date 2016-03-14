@@ -74,30 +74,31 @@ def config_changed():
     This hook is run when a config parameter is changed.
     It also runs on node reboot.
     '''
-    if add_lcm_key():
-        log("PLUMgrid LCM Key added")
-        return 1
     charm_config = config()
+    if charm_config.changed('lcm-ssh-key'):
+        if add_lcm_key():
+            log("PLUMgrid LCM Key added")
     if charm_config.changed('fabric-interfaces'):
         if not fabric_interface_changed():
             log("Fabric interface already set")
-            return 1
+        else:
+            restart_pg()
     if charm_config.changed('os-data-network'):
         if charm_config['fabric-interfaces'] == 'MANAGEMENT':
             log('Fabric running on managment network')
-            return 1
-    stop_pg()
-    configure_sources(update=True)
-    pkgs = determine_packages()
-    for pkg in pkgs:
-        apt_install(pkg, options=['--force-yes'], fatal=True)
-    remove_iovisor()
-    load_iovisor()
-    ensure_mtu()
-    ensure_files()
-    add_lcm_key()
+    if (charm_config.changed('install_sources') or
+        charm_config.changed('plumgrid-build') or
+        charm_config.changed('plumgrid-virtual-ip') or
+            charm_config.changed('iovisor-build')):
+        stop_pg()
+        configure_sources(update=True)
+        pkgs = determine_packages()
+        for pkg in pkgs:
+            apt_install(pkg, options=['--force-yes'], fatal=True)
+            remove_iovisor()
+            load_iovisor()
+        restart_pg()
     CONFIGS.write_all()
-    restart_pg()
 
 
 @hooks.hook('upgrade-charm')
