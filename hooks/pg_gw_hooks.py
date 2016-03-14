@@ -103,6 +103,10 @@ def config_changed():
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
     load_iptables()
+    ensure_mtu()
+    ensure_files()
+    CONFIGS.write_all()
+    restart_pg()
 
 
 @hooks.hook('stop')
