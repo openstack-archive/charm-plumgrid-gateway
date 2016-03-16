@@ -14,6 +14,8 @@ from charmhelpers.core.hookenv import (
     config,
 )
 
+from charmhelpers.core.host import service_running
+
 from charmhelpers.fetch import (
     apt_install,
     apt_purge,
@@ -82,13 +84,12 @@ def config_changed():
         if not fabric_interface_changed():
             log("Fabric interface already set")
         else:
-            restart_pg()
+            stop_pg()
     if charm_config.changed('os-data-network'):
         if charm_config['fabric-interfaces'] == 'MANAGEMENT':
             log('Fabric running on managment network')
     if (charm_config.changed('install_sources') or
         charm_config.changed('plumgrid-build') or
-        charm_config.changed('plumgrid-virtual-ip') or
             charm_config.changed('iovisor-build')):
         stop_pg()
         configure_sources(update=True)
@@ -97,8 +98,11 @@ def config_changed():
             apt_install(pkg, options=['--force-yes'], fatal=True)
             remove_iovisor()
             load_iovisor()
-        restart_pg()
     CONFIGS.write_all()
+    # Restarting the plumgrid service only if it is
+    # already stopped by any config-parameters or node reboot
+    if not service_running('plumgrid'):
+        restart_pg()
 
 
 @hooks.hook('upgrade-charm')

@@ -148,7 +148,8 @@ def restart_pg():
             # wait for 3 secs so that libvirt-bin can be completely up and
             # start the plumgrid service
             time.sleep(3)
-            service_start('plumgrid')
+            if not service_start('plumgrid'):
+                raise ValueError("plumgrid service couldn't be started")
     time.sleep(30)
 
 
