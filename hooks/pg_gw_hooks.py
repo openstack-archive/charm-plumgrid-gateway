@@ -85,11 +85,9 @@ def config_changed():
             log("Fabric interface already set")
         else:
             stop_pg()
-    if charm_config.changed('os-data-network'):
-        if charm_config['fabric-interfaces'] == 'MANAGEMENT':
-            log('Fabric running on managment network')
     if (charm_config.changed('install_sources') or
         charm_config.changed('plumgrid-build') or
+        charm_config.changed('install_keys') or
             charm_config.changed('iovisor-build')):
         stop_pg()
         configure_sources(update=True)
@@ -99,8 +97,6 @@ def config_changed():
             remove_iovisor()
             load_iovisor()
     CONFIGS.write_all()
-    # Restarting the plumgrid service only if it is
-    # already stopped by any config-parameters or node reboot
     if not service_running('plumgrid'):
         restart_pg()
 
