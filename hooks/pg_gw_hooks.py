@@ -85,6 +85,8 @@ def config_changed():
             log("Fabric interface already set")
         else:
             stop_pg()
+    if charm_config.changed('external-interfaces'):
+        stop_pg()
     if (charm_config.changed('install_sources') or
         charm_config.changed('plumgrid-build') or
         charm_config.changed('install_keys') or
