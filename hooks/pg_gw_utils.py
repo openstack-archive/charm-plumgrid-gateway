@@ -30,6 +30,7 @@ from charmhelpers.core.host import (
     write_file,
     service_start,
     service_stop,
+    service_running
 )
 from charmhelpers.fetch import (
     apt_cache,
@@ -142,7 +143,17 @@ def restart_pg():
     '''
     stop_pg()
     service_start('plumgrid')
-    time.sleep(30)
+    time.sleep(3)
+    if not service_running('plumgrid'):
+        if service_running('libvirt-bin'):
+            raise ValueError("plumgrid service couldn't be started")
+        else:
+            if service_start('libvirt-bin'):
+                time.sleep(3)
+                if not service_running('plumgrid'):
+                    raise ValueError("plumgrid service couldn't be started")
+            else:
+                raise ValueError("libvirt-bin service couldn't be started")
 
 
 def stop_pg():
