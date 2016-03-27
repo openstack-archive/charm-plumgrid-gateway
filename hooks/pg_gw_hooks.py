@@ -18,7 +18,6 @@ from charmhelpers.core.host import service_running
 
 from charmhelpers.fetch import (
     apt_install,
-    apt_purge,
     configure_sources,
 )
 
@@ -26,6 +25,7 @@ from pg_gw_utils import (
     register_configs,
     ensure_files,
     restart_pg,
+    restart_map,
     stop_pg,
     determine_packages,
     load_iovisor,
@@ -34,6 +34,8 @@ from pg_gw_utils import (
     add_lcm_key,
     fabric_interface_changed,
     load_iptables,
+    restart_on_change,
+    director_cluster_ready
 )
 
 hooks = Hooks()
@@ -56,18 +58,16 @@ def install():
     add_lcm_key()
 
 
-@hooks.hook('plumgrid-relation-joined')
 @hooks.hook('plumgrid-relation-changed')
-def plumgrid_joined():
+@restart_on_change(restart_map())
+def plumgrid_changed():
     '''
     This hook is run when relation between plumgrid-gateway and
     plumgrid-director is made.
     '''
-    ensure_mtu()
-    ensure_files()
-    add_lcm_key()
-    CONFIGS.write_all()
-    restart_pg()
+    if director_cluster_ready():
+        ensure_mtu()
+        CONFIGS.write_all()
 
 
 @hooks.hook('config-changed')
@@ -105,12 +105,10 @@ def config_changed():
 
 
 @hooks.hook('upgrade-charm')
+@restart_on_change(restart_map())
 def upgrade_charm():
-    load_iptables()
     ensure_mtu()
-    ensure_files()
     CONFIGS.write_all()
-    restart_pg()
 
 
 @hooks.hook('stop')
@@ -119,10 +117,6 @@ def stop():
     This hook is run when the charm is destroyed.
     '''
     stop_pg()
-    remove_iovisor()
-    pkgs = determine_packages()
-    for pkg in pkgs:
-        apt_purge(pkg, fatal=False)
 
 
 def main():
