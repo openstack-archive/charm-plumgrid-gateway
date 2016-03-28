@@ -14,8 +14,6 @@ from charmhelpers.core.hookenv import (
     config,
 )
 
-from charmhelpers.core.host import service_running
-
 from charmhelpers.fetch import (
     apt_install,
     configure_sources,
@@ -24,7 +22,6 @@ from charmhelpers.fetch import (
 from pg_gw_utils import (
     register_configs,
     ensure_files,
-    restart_pg,
     restart_map,
     stop_pg,
     determine_packages,
@@ -35,6 +32,7 @@ from pg_gw_utils import (
     fabric_interface_changed,
     load_iptables,
     restart_on_change,
+    restart_on_stop,
     director_cluster_ready
 )
 
@@ -71,6 +69,8 @@ def plumgrid_changed():
 
 
 @hooks.hook('config-changed')
+@restart_on_stop()
+@restart_on_change(restart_map())
 def config_changed():
     '''
     This hook is run when a config parameter is changed.
@@ -83,10 +83,6 @@ def config_changed():
     if charm_config.changed('fabric-interfaces'):
         if not fabric_interface_changed():
             log("Fabric interface already set")
-        else:
-            stop_pg()
-    if charm_config.changed('external-interfaces'):
-        stop_pg()
     if (charm_config.changed('install_sources') or
         charm_config.changed('plumgrid-build') or
         charm_config.changed('install_keys') or
@@ -100,8 +96,6 @@ def config_changed():
             load_iovisor()
     ensure_mtu()
     CONFIGS.write_all()
-    if not service_running('plumgrid'):
-        restart_pg()
 
 
 @hooks.hook('upgrade-charm')

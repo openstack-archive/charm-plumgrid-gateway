@@ -24,7 +24,6 @@ TO_PATCH = [
     'configure_sources',
     'ensure_files',
     'stop_pg',
-    'restart_pg',
     'load_iovisor',
     'ensure_mtu',
     'add_lcm_key',
