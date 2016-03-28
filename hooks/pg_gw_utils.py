@@ -393,6 +393,19 @@ def director_cluster_ready():
     return True if dirs_count == 1 or dirs_count == 3 else False
 
 
+def restart_on_stop():
+    """
+    Restart Plumgrid service if it is stopped by any config parameter
+    """
+    def wrap(f):
+        def wrapped_f(*args, **kwargs):
+            f(*args, **kwargs)
+            if not service_running('plumgrid'):
+                restart_pg()
+        return wrapped_f
+    return wrap
+
+
 def restart_on_change(restart_map):
     """
     Restart services based on configuration files changing
@@ -403,6 +416,8 @@ def restart_on_change(restart_map):
             f(*args, **kwargs)
             for path in restart_map:
                 if path_hash(path) != checksums[path]:
+                    if path == PG_IFCS_CONF:
+                        ensure_files()
                     restart_pg()
                     break
         return wrapped_f
