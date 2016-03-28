@@ -53,7 +53,8 @@ class TestPGGwUtils(CharmTestCase):
         confs = [nutils.PG_CONF,
                  nutils.PG_HN_CONF,
                  nutils.PG_HS_CONF,
-                 nutils.PG_IFCS_CONF]
+                 nutils.PG_IFCS_CONF,
+                 nutils.OPS_CONF]
         self.assertItemsEqual(_regconfs.configs, confs)
 
     def test_resource_map(self):
@@ -69,6 +70,7 @@ class TestPGGwUtils(CharmTestCase):
             (nutils.PG_CONF, ['plumgrid']),
             (nutils.PG_HN_CONF, ['plumgrid']),
             (nutils.PG_HS_CONF, ['plumgrid']),
+            (nutils.OPS_CONF, ['plumgrid']),
             (nutils.PG_IFCS_CONF, []),
         ])
         self.assertEqual(expect, _restart_map)
