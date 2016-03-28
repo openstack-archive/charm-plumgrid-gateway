@@ -395,7 +395,7 @@ def director_cluster_ready():
 
 def restart_on_stop():
     """
-    Starts plumgrid service if it is stopped by any config parameter
+    Starts plumgrid service if it is stopped
     """
     def wrap(f):
         def wrapped_f(*args, **kwargs):
