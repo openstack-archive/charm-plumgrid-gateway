@@ -16,7 +16,8 @@ from charmhelpers.contrib.openstack import templating
 from charmhelpers.core.hookenv import (
     log,
     config,
-    unit_get
+    unit_get,
+    status_set
 )
 from charmhelpers.contrib.network.ip import (
     get_iface_from_addr,
@@ -160,6 +161,7 @@ def restart_pg():
                     raise ValueError("plumgrid service couldn't be started")
             else:
                 raise ValueError("libvirt-bin service couldn't be started")
+    status_set('active', 'Unit is ready')
 
 
 def stop_pg():

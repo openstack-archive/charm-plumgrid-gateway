@@ -6,12 +6,13 @@
 # in this file.
 
 import sys
-
+from charmhelpers.core.host import service_running
 from charmhelpers.core.hookenv import (
     Hooks,
     UnregisteredHookError,
     log,
     config,
+    status_set
 )
 
 from charmhelpers.fetch import (
@@ -45,8 +46,10 @@ def install():
     '''
     Install hook is run when the charm is first deployed on a node.
     '''
+    status_set('maintenance', 'Executing pre-install')
     load_iptables()
     configure_sources(update=True)
+    status_set('maintenance', 'Installing apt packages')
     pkgs = determine_packages()
     for pkg in pkgs:
         apt_install(pkg, options=['--force-yes'], fatal=True)
@@ -88,6 +91,7 @@ def config_changed():
         charm_config.changed('install_keys') or
             charm_config.changed('iovisor-build')):
         stop_pg()
+        status_set('maintenance', 'Upgrading apt packages')
         configure_sources(update=True)
         pkgs = determine_packages()
         for pkg in pkgs:
@@ -111,6 +115,14 @@ def stop():
     This hook is run when the charm is destroyed.
     '''
     stop_pg()
+
+
+@hooks.hook('update-status')
+def update_status():
+    if service_running('plumgrid'):
+        status_set('active', 'Unit is ready')
+    else:
+        status_set('blocked', 'plumgrid service not running')
 
 
 def main():
