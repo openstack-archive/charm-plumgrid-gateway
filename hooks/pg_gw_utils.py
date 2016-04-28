@@ -156,7 +156,7 @@ def restart_pg():
             raise ValueError("plumgrid service couldn't be started")
         else:
             if service_start('libvirt-bin'):
-                time.sleep(3)
+                time.sleep(5)
                 if not service_running('plumgrid') \
                         and not service_start('plumgrid'):
                     raise ValueError("plumgrid service couldn't be started")
