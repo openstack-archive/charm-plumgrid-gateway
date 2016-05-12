@@ -267,22 +267,12 @@ def get_gw_interfaces():
     Gateway node can have multiple interfaces. This function parses json
     provided in config to get all gateway interfaces for this node.
     '''
-    node_interfaces = []
-    try:
-        all_interfaces = json.loads(config('external-interfaces'))
-    except ValueError:
-        raise ValueError("Invalid json provided for gateway interfaces")
-    hostname = get_unit_hostname()
-    if hostname in all_interfaces:
-        node_interfaces = all_interfaces[hostname].split(',')
-    elif 'DEFAULT' in all_interfaces:
-        node_interfaces = all_interfaces['DEFAULT'].split(',')
-    for interface in node_interfaces:
-        if not interface_exists(interface):
-            log('Provided gateway interface %s does not exist'
-                % interface)
-            raise ValueError('Provided gateway interface does not exist')
-    return node_interfaces
+    interface = config('external-interfaces')
+    if not interface_exists(interface):
+        log('Provided gateway interface %s does not exist'
+            % interface)
+        raise ValueError('Provided gateway interface does not exist')
+    return interface
 
 
 def ensure_mtu():
