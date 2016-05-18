@@ -29,7 +29,8 @@ TO_PATCH = [
     'add_lcm_key',
     'determine_packages',
     'load_iptables',
-    'director_cluster_ready'
+    'director_cluster_ready',
+    'status_set'
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
