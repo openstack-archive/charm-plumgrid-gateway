@@ -4,7 +4,7 @@ PYTHON := /usr/bin/env python
 virtualenv:
 	virtualenv .venv
 	.venv/bin/pip install flake8 nose coverage mock pyyaml netifaces \
-        netaddr jinja2
+        netaddr jinja2 pyflakes pep8 six pbr funcsigs psutil
 
 lint: virtualenv
 	.venv/bin/flake8 --exclude hooks/charmhelpers hooks unit_tests tests --ignore E402
