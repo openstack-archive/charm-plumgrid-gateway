@@ -92,7 +92,7 @@ def configure_pg_sources():
             sources.truncate()
         sources.close()
     except IOError:
-        raise IOError('Unable to access /etc/apt/sources.list')
+        log('Unable to update /etc/apt/sources.list')
 
 
 def determine_packages():
