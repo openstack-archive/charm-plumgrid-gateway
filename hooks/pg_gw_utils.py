@@ -42,6 +42,7 @@ from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
 
+SOURCES_LIST = '/etc/apt/sources.list'
 LXC_CONF = "/etc/libvirt/lxc.conf"
 TEMPLATES = 'templates/'
 PG_LXC_DATA_PATH = '/var/lib/libvirt/filesystems/plumgrid-data'
@@ -76,6 +77,22 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [pg_gw_context.PGGwContext()],
     }),
 ])
+
+
+def configure_pg_sources():
+    '''
+    Returns true if install sources is updated in sources.list file
+    '''
+    try:
+        with open(SOURCES_LIST, 'r+') as sources:
+            all_lines = sources.readlines()
+            sources.seek(0)
+            for i in (line for line in all_lines if "plumgrid" not in line):
+                sources.write(i)
+            sources.truncate()
+        sources.close()
+    except IOError:
+        log('Unable to update /etc/apt/sources.list')
 
 
 def determine_packages():

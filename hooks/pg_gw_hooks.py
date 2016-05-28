@@ -34,7 +34,8 @@ from pg_gw_utils import (
     load_iptables,
     restart_on_change,
     restart_on_stop,
-    director_cluster_ready
+    director_cluster_ready,
+    configure_pg_sources
 )
 
 hooks = Hooks()
@@ -92,6 +93,8 @@ def config_changed():
             charm_config.changed('iovisor-build')):
         stop_pg()
         status_set('maintenance', 'Upgrading apt packages')
+        if charm_config.changed('install_sources'):
+            configure_pg_sources()
         configure_sources(update=True)
         pkgs = determine_packages()
         for pkg in pkgs:
