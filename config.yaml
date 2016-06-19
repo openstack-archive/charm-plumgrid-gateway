@@ -18,8 +18,7 @@ options:
     type: string
     description: |
        Interfaces that will provide fabric connectivity on the gateway nodes.
-       Provided in form of json in a string. These interfaces have to be connected 
-       to the os-data-network specified in the config. Default value is MANAGEMENT which
+       Provided in form of json in a string. Default value is MANAGEMENT which
        will configure the management interface as the fabric interface on each
        director.
   network-device-mtu:

@@ -23,8 +23,6 @@ from charmhelpers.contrib.network.ip import (
     get_iface_from_addr,
     get_bridges,
     get_bridge_nics,
-    is_address_in_network,
-    get_iface_addr
 )
 from charmhelpers.core.host import (
     write_file,
