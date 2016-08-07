@@ -35,7 +35,8 @@ from pg_gw_utils import (
     restart_on_change,
     restart_on_stop,
     director_cluster_ready,
-    configure_pg_sources
+    configure_pg_sources,
+    configure_analyst_opsvm
 )
 
 hooks = Hooks()
@@ -69,6 +70,7 @@ def plumgrid_changed():
     '''
     if director_cluster_ready():
         ensure_mtu()
+        configure_analyst_opsvm()
         CONFIGS.write_all()
 
 
