@@ -12,6 +12,7 @@ from charmhelpers.core.hookenv import (
     UnregisteredHookError,
     log,
     config,
+    relation_set,
     status_set
 )
 
@@ -72,6 +73,16 @@ def plumgrid_changed():
         ensure_mtu()
         configure_analyst_opsvm()
         CONFIGS.write_all()
+
+
+@hooks.hook('plumgrid-relation-joined')
+def gateway_node_joined(relation_id=None):
+    '''
+    This hook is run when relation between plumgrid-gateway and
+    plumgrid-director is made.
+    '''
+    rel_data = {'gateway-peer': 'gateway-peer'}
+    relation_set(relation_id=relation_id, **rel_data)
 
 
 @hooks.hook('config-changed')
