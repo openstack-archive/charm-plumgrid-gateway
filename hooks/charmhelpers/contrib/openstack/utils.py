@@ -29,7 +29,6 @@ import functools
 import six
 import tempfile
 import traceback
-import uuid
 import yaml
 
 from charmhelpers.contrib.network import ip
@@ -82,6 +81,7 @@ from charmhelpers.core.host import (
 from charmhelpers.fetch import apt_install, apt_cache, install_remote
 from charmhelpers.contrib.storage.linux.utils import is_block_device, zap_disk
 from charmhelpers.contrib.storage.linux.loopback import ensure_loopback_device
+from oslo_utils import uuidutils
 
 CLOUD_ARCHIVE_URL = "http://ubuntu-cloud.archive.canonical.com/ubuntu"
 CLOUD_ARCHIVE_KEY_ID = '5EDB1B62EC4926EA'
@@ -1317,7 +1317,7 @@ def do_action_openstack_upgrade(package, upgrade_callback, configs):
 
 def remote_restart(rel_name, remote_service=None):
     trigger = {
-        'restart-trigger': str(uuid.uuid4()),
+        'restart-trigger': uuidutils.generate_uuid(),
     }
     if remote_service:
         trigger['remote-service'] = remote_service
