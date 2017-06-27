@@ -29,7 +29,7 @@ import functools
 import six
 import tempfile
 import traceback
-import uuid
+from oslo_utils import uuidutils
 import yaml
 
 from charmhelpers.contrib.network import ip
@@ -1317,7 +1317,7 @@ def do_action_openstack_upgrade(package, upgrade_callback, configs):
 
 def remote_restart(rel_name, remote_service=None):
     trigger = {
-        'restart-trigger': str(uuid.uuid4()),
+        'restart-trigger': str(uuidutils.generate_uuid()),
     }
     if remote_service:
         trigger['remote-service'] = remote_service
