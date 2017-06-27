@@ -23,11 +23,10 @@ import socket
 import subprocess
 import sys
 import time
-import uuid
-
 import amulet
 import distro_info
 import six
+from oslo_utils import uuidutils
 from six.moves import configparser
 if six.PY3:
     from urllib import parse as urlparse
@@ -784,7 +783,7 @@ class AmuletUtils(object):
     def get_uuid_epoch_stamp(self):
         """Returns a stamp string based on uuid4 and epoch time.  Useful in
         generating test messages which need to be unique-ish."""
-        return '[{}-{}]'.format(uuid.uuid4(), time.time())
+        return '[{}-{}]'.format(uuidutils.generate_uuid(), time.time())
 
 # amulet juju action helpers:
     def run_action(self, unit_sentry, action,
